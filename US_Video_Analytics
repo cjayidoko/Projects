@@ -1,0 +1,348 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun May 13 04:26:43 2018
+
+@author: CJ Idoko
+"""
+
+import pandas as pd
+import numpy as np
+import json
+import matplotlib.pyplot as plt
+
+#Importing the data set
+#my_df = pd.read_csv('USvideos.csv', index_col='video_id')
+my_df = pd.read_csv('USvideos.csv')
+#my_df = pd.read_csv('USvideos.csv')
+
+''''my_newDat = pd.read_csv('sample_submission.csv')
+my_train = pd.read_csv('train.csv')
+my_test = pd.read_csv('test.csv')
+Id_Code = my_newDat['ID_code']''''
+
+#Convertions and preprocessing
+my_df['trending_date'] = pd.to_datetime(my_df['trending_date'], format='%y.%d.%m')
+my_df['trending_date'].head()
+my_df['publish_time'] = pd.to_datetime(my_df['publish_time'], format='%Y-%m-%dT%H:%M:%S.%fZ')
+my_df.insert(4, 'publish_date', my_df['publish_time'].dt.date)
+my_df['publish_time'] = my_df['publish_time'].dt.time
+my_df['publish_time'].head()
+
+type_int_list = ['views', 'likes', 'dislikes', 'comment_count']
+for column in type_int_list:
+    my_df[column] = my_df[column].astype(int)
+
+type_str_list = ['category_id']
+for column in type_str_list:
+    my_df[column] = my_df[column].astype(str)
+
+id_to_category = {}   
+with open('US_category_id.json', 'r') as f:
+    data = json.load(f)
+    
+for category in data['items']:
+    id_to_category[category['id']] = category['snippet']['title']
+
+my_df.insert(4, 'category', my_df['category_id'].map(id_to_category))
+my_df[['category_id', 'category']].head()
+
+
+
+'''#Finding out duplicate entries aka videos trended more than one day
+mul_day_df = my_df[my_df.video_id.duplicated()]
+#TrailDup2 = my_df[my_df.index.isin(["WQd6x4KmVhA"])]
+Dup_Unq = list(set(mul_day_df.video_id))#Unique list of video ID trended>1
+print(mul_day_df.shape)
+mul_day_df.head()'''
+
+#Finding first, last, and single appearance of all videos
+my_df.reset_index(inplace = True)
+All_Unq = list(set(my_df.video_id))#Unique list of all video ID
+my_VidId = list(my_df.video_id) #All Video Id
+#my_views = list(my_df.views)
+AllFirstApp = []#Index in my_VidId of all first app
+AllLastApp = []#Index in my_VidId of all last app
+TrendOnce = []#Index in my_VidId of video that trended just once
+allMmat = []
+mMIN = 0
+for n, m in enumerate(All_Unq):
+    m1 = All_Unq[n]
+    allM = [j for j, k in enumerate(my_VidId) if k == m1]#index of appearance of each video
+    allMmat.append(allM)
+    #Vid
+    if len(allM) == 1:
+        TrendOnce.append(allM[0])
+        continue
+    elif len(allM)>1:
+        Mmin = min(allM)
+        Mmax = max(allM)
+        AllFirstApp.append(Mmin)
+        AllLastApp.append(Mmax)
+Allzeros = AllLastApp+TrendOnce#Indices of All the videos that never trended afterward
+
+#Mapping the views,likes,dislikes,comments each day for all trended videos
+
+#Start by mapping for one video, then loop over all the videos
+All_Unq = list(set(my_df.video_id))#Unique list of all video ID
+my_VidId = list(my_df.video_id) #All Video Id
+my_views = list(my_df.views)
+viewdict = {}
+dateiddict = {}
+likedict = {}
+commentdict = {}
+dislikedict = {}
+newView = []
+newdate = []
+newlike = []
+newcomment = []
+newdislike = []
+for j, k in enumerate(All_Unq):
+    #viewdi
+    m1 = All_Unq[j]
+    allM = [j for j, k in enumerate(my_VidId) if k == m1]#index of appearance of each video
+    newView = []
+    newdate = []
+    newlike = []
+    newcomment = []
+    newdislike = []
+    for i in allM:
+        myviews = my_df['views'][i]
+        mydate = my_df['trending_date'][i]
+        mylike = my_df['likes'][i]
+        mycomment = my_df['comment_count'][i]
+        mydislike = my_df['dislikes'][i]
+        newView.append(myviews)
+        newdate.append(mydate)
+        newlike.append(mylike)
+        newcomment.append(mycomment)
+        newdislike.append(mydislike)
+    viewdict[m1] = newView
+    dateiddict[m1] = newdate
+    likedict[m1] = newlike
+    commentdict[m1] = newcomment
+    dislikedict[m1] = newdislike
+    
+#Calculate the increase in views for each day of trend for the top videos
+#First find the no of times a viodeo trended
+my_df.set_index('video_id',inplace = True)
+trenddict = {} # the no of times a video trended
+for i, j in viewdict.items():
+    numtrend = len(j)
+    trenddict[i] = numtrend
+gy = [i for i,j in trenddict.items() if j == max(trenddict.values())]#vid with max views
+##Results show about 8 videos that trended 16 times
+#pick one of the videos and run further analytics on it
+my_df.loc[['4HU6Z7anycw'],['title','category']]
+hu = my_df.loc[[i],['title','category']]
+##4HU6Z7anycw  Lucas the Spider - Polar Bear  Film & Animation
+
+#Find out the max views,likes,comment_count,dislikes in each of the videos
+MaxViewDict = {} #Maximum view recorded per video
+MaxLikeDict = {}
+MaxCommentDict = {}
+MaxDislikeDict = {}
+VideoID = {}
+for i, j in viewdict.items():
+    MaxView = max(j)
+    MaxViewDict[i] = MaxView
+    VideoID[i] = i
+
+for i, j in likedict.items():
+    MaxLike = max(j)
+    MaxLikeDict[i] = MaxLike
+    
+for i, j in commentdict.items():
+    MaxComment = max(j)
+    MaxCommentDict[i] = MaxComment
+    
+for i, j in dislikedict.items():
+    MaxDislike = max(j)
+    MaxDislikeDict[i] = MaxDislike
+
+MeasuresDict = {'VID':list(VideoID.values()),'Comments':list(MaxCommentDict.values()),
+              'likes':list(MaxLikeDict.values()),'dislikes':list(MaxDislikeDict.values()),
+              'views':list(MaxViewDict.values())}
+MeasuresDF = pd.DataFrame(MeasuresDict)
+MeasuresDF.set_index('VID',inplace = True)
+
+#CrossPlot to check for correlation
+sns.pairplot(MeasuresDF)
+# Calcualte correlation
+corr = MeasuresDF.corr()
+# plot the heatmap
+plt.figure(figsize=(21, 12))
+sns.heatmap(
+            corr, 
+            xticklabels=corr.columns,
+            yticklabels=corr.columns,
+            cmap='seismic',
+            vmin=-0.95,
+            vmax=0.95
+           )
+#sns.crossplot
+#Find the increment in views per new day of trend
+top7 = {}
+top = {}
+for i,j in enumerate(gy):
+    top[j] = pd.DataFrame(viewdict[j])#actual views
+    top7[j] = pd.DataFrame(viewdict[j]).diff()#increament in views
+    top7[j].iloc[0] = top[j].iloc[0]#replace the nan in first row
+
+#Obtain the trending date for the Top videos
+TrendDates = {}
+for i in gy:
+    TrendDates[i] = dateiddict[i]
+TrendDates = pd.DataFrame(TrendDates)
+
+
+#Visualize the trend in the top videos
+##Start with one video and then do many
+#Using the video with id as '4HU6Z7anycw'
+One_vw =  top7['4HU6Z7anycw'].values.tolist()#
+One_vw = [i for i in One_vw for i in i]
+One_df = pd.DataFrame({'trendDate': TrendDates['4HU6Z7anycw'],'viewss':One_vw})
+One_vw =  LucasvwDf.values.tolist()#
+One_vw = [i for i in Lucas_vw for i in i]
+Lucas_df =  pd.DataFrame({'trendDate': Lucastrdate,'viewss':Lucas_vw})#the data frame I want to work with
+Lucas_df['trendDate'] = pd.to_datetime(Lucas_df['trendDate']).dt.date#removes the time part
+Lucas_df.set_index('trendDate',inplace = True)
+##Creat plot
+Lucas_df.plot(kind='bar')
+plt.title('Increments in views')
+plt.ylabel('Added views')
+plt.xlabel('Dates')
+plt.rc('font',size = 20)
+plt.show()
+
+#For all of them
+One_vw = []
+title = ''
+for j,i in enumerate(gy):
+    One_df = {}
+    One_vw =  top7[i].values.tolist()#
+    One_vw = [i for i in One_vw for i in i]
+    One_df = pd.DataFrame({'trendDate': TrendDates['4HU6Z7anycw'],'viewss':One_vw})
+    One_df['trendDate'] = pd.to_datetime(One_df['trendDate']).dt.date#removes the time part
+    One_df.set_index('trendDate',inplace = True)
+    title = my_df.loc[[i],['title','category']].values[0][0]
+    plt.subplot(len(gy),1,j+1)
+    One_df.plot(kind = 'bar')
+    plt.legend(['Views added'])
+    plt.ylabel('Added views')
+    plt.xlabel('Dates')
+    plt.title(title)
+    plt.rc('font',size = 20)
+    plt.show()
+
+
+#Use clustering to exlore top trends and find out if there are segments based
+#on likes, views, and no of times it trended. Does trending more correlate with views?
+plt.scatter(x = trenddict.values(),y = MaxViewDict.values())
+plt.xlabel('Number of days trended')
+plt.ylabel('Maximum views recorded')
+plt.legend(['Views vs Trend per video'])
+plt.show()
+
+###Playing around datetime
+df = pd.DataFrame({'year': [2015, 2016],'month': [2, 3],'day': [4, 5]})
+df['datesr'] = pd.to_datetime(df)
+df['datesr'] = pd.to_datetime(df['datesr']).dt.date
+
+#newlist = [item for items in newlist for item in items]
+viewdict[m1] = allM
+vidApp = []
+for i in All_Unq:
+    m
+#Split the column tags using pipe as a seperator
+VidTags = list(my_df['tags'])
+Tags = [None]*len(VidTags) #Initializes tags to be split into a list using pipe 
+TagL = [] #Initializes number of tags for each video
+for i in range(len(VidTags)):
+    Tags[i] = VidTags[i].split('|')
+    TagL.append(len(Tags[i]))
+
+#Creat a new column of 1 & 0 in my_df that show if a video trended again or not
+TrendedAgain = [1]*len(my_VidId)
+for k in Allzeros:
+    m2 = 0
+    TrendedAgain[k] = m2
+
+#Creating the desired dataset
+my_df['TagL'] = TagL
+MatrixCol = ['video_id','channel_title', 'category_id', 'views','likes','TagL']
+SentMatrix = my_df[MatrixCol]
+SentMatrix['AgainTrended'] = TrendedAgain
+
+#Assigning X and Y
+X = SentMatrix.iloc[:,[0,1,2,3,4,5]].values
+Y = SentMatrix.iloc[:,6].values
+
+
+#Encoding categorical data
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+labelencoder_X_1 = LabelEncoder()
+X[:,0] = labelencoder_X_1.fit_transform(X[:,0])
+labelencoder_X_2 = LabelEncoder()
+X[:,1] = labelencoder_X_2.fit_transform(X[:,1])
+onehotencoder = OneHotEncoder(categorical_features = [0,1])
+X = onehotencoder.fit_transform(X).toarray()
+X = X[:,1:]#Takes out one dummy variable
+X = np.delete(X,5235,1)#Takes out the second dummy Variable
+
+#arr = np.arange(20, dtype=np.float32)
+#matrix = arr.reshape(5, 4)
+#matrix = np.delete(matrix,3,1)
+
+
+#Splitting the dataset
+from sklearn.cross_validation import train_test_split
+X_train, X_test, Y_train,Y_test = train_test_split(X,Y,test_size = 0.2,random_state = 0)
+
+#Feature scaling
+from sklearn.preprocessing import StandardScaler
+sc_X = StandardScaler()
+X_train = sc_X.fit_transform(X_train)
+X_test = sc_X.transform(X_test)
+
+#Importing the Keras library
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+
+classifier = Sequential()
+
+#Use dense function to add layers
+classifier.add(Dense(output_dim = 3636, init = 'uniform', activation = 'relu', input_dim = 7271))
+#Input dim = numb of indpt var ie no of columns
+#Output dim is the av no of indpdt and dependent var
+#actv function = (0-1) how strong or easier the neuron will pass the signal 
+
+#Adding the second hidden layer
+classifier.add(Dense(kernel_initializer = "uniform", activation = "relu", units = 1))
+#Only change is the replacement of the input_dim with the new inut var (last output va)
+#Adding the output layer
+classifier.add(Dense(kernel_initializer = "uniform", activation = "relu", units = 1))
+#Change the act funct to whih most suites the type of model you bulding
+
+
+#Compiling the ANN
+classifier.compile(optimizer = 'adam', loss = 'mean_absolute_error', metrics = ['accuracy'])
+#Applies stochastic grad descent on the ANN using the algorithm adam.
+#Loss function is the sum  of square error or logarithmic loss 
+
+#Fitting classifier to training dataset
+if (X_train.ndim == 1):
+    X_train = np.array([X_train])
+
+classifier.fit(X_train, Y_train, batch_size = 100, nb_epoch = 10)
+
+#Part 3: Making the predictions nd evaluating the model
+
+#Predicting the test set results
+y_pred = classifier.predict(X_test)
+y_pred = (y_pred > 0.5)
+
+#Making the confusion matrix
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(Y_test, y_pred)
+
