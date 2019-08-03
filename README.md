@@ -14,9 +14,8 @@ The motivation behind the different projects in this project vary. But in genera
 my software development skills applying object oriented programming, and building statistical softwares.
 
 ## File Descriptions:
-This repository include the  Jupiter Noteboks 'IdokoCM_DataSc_Project1.ipynb ' which contains the break-down of my work and 'drop_down.ipynb ' which is a function that can be used to get an equivalent drop down of responses in a target_column that match the results of splitting multiple responses in a given pseudo_column. Other files in the repository are image/figure results from the analysis. 
+The number of files in this repo will keep changing as I add new projects. The BoardGame is symply a tit_tac_toe game. The EnvelopeScript.m is a matlab file for adding a standard deviation envelope to a bunch of plots from a monte-carlo simulation. The prob_of_success.py file is used to model the Binomial distribution. The Hackaton.py file applies LSTM neural network in predicting the volume of production from a differnt wells in a gas field. Each of the files in this repo. is a susbsidiary of a bigger project I have/am undertaken/undertaking.
 
-## Results: 
 ## Licensing, Authors, Acknowledgements
 Feel free to use the code and also republish the results from the code with my citation.
 
