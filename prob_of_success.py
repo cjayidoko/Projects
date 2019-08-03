@@ -10,6 +10,9 @@ class ProbSuccess(Distribution):
     in a sample size n drawn with replacement from a population of size N. n
     could be anything such as number of experiments with one expreiment n = 1
      having a sequence of yes/1/success or no/0/failure. 
+     
+     This class inherits the Distribution class from the general distribution
+     module
     
     Attributes:
         mean (float) representing the mean value of the distribution
